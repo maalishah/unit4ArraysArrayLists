@@ -8,7 +8,7 @@ public class CharMatrix
   // and fills it with spaces
   public CharMatrix(int rows, int cols)
   {
-    ...
+      
   }
 
   // Constructor: creates a grid with dimensions rows , cols ,
