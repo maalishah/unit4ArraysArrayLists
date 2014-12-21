@@ -40,7 +40,7 @@ public class RadarComponent extends JComponent
     public Dimension getPreferredSize()
     {
         // the component needs to be large enough to encapsulate two grids side by side
-        final int WIDTH = radar.getNumCols() * CELL_WIDTH * 2;
+        final int WIDTH = radar.getNumCols() * CELL_WIDTH;
         final int HEIGHT = radar.getNumRows() * CELL_HEIGHT;
         return new Dimension(WIDTH, HEIGHT);
     }

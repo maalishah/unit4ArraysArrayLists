@@ -10,14 +10,16 @@ public class Radar
     
     // stores whether each cell triggered detection for the current scan of the radar
     private boolean[][] currentScan;
+    private boolean[][] previousScan;
     
     // value of each cell is incremented for each scan in which that cell triggers detection 
     private int[][] accumulator;
+    private int[][] slopes;
     
     // location of the monster
     private int monsterLocationRow;
     private int monsterLocationCol;
-
+    private int dx, dy;
     // probability that a cell will trigger a false detection (must be >= 0 and < 1)
     private double noiseFraction;
     
@@ -30,11 +32,15 @@ public class Radar
      * @param   rows    the number of rows in the radar grid
      * @param   cols    the number of columns in the radar grid
      */
-    public Radar(int rows, int cols)
+    public Radar(int rows, int cols, int dx, int dy)
     {
         // initialize instance variables
         currentScan = new boolean[rows][cols]; // elements will be set to false
+        previousScan = new boolean[rows][cols];
         accumulator = new int[rows][cols]; // elements will be set to 0
+        this.dx = dx;
+        this.dy = dy;
+        slopes = new int[11][11];
         
         // randomly set the location of the monster (can be explicity set through the
         //  setMonsterLocation method
@@ -51,6 +57,14 @@ public class Radar
      */
     public void scan()
     {
+        for (int row = 0; row < currentScan.length; row++)
+        {
+            for (int col = 0; col < currentScan[0].length; col++)
+            {
+                previousScan[row][col] = currentScan[row][col];
+            }
+        }
+        
         // zero the current scan grid
         for(int row = 0; row < currentScan.length; row++)
         {
@@ -61,12 +75,37 @@ public class Radar
         }
         
         // detect the monster
-        currentScan[monsterLocationRow][monsterLocationCol] = true;
+        setMonsterLocation();
         
         // inject noise into the grid
-        injectNoise();
+        injectNoise(); 
         
-        // udpate the accumulator
+        for(int row = 0; row < currentScan.length; row++)
+        {
+            for(int col = 0; col < currentScan[0].length; col++)
+            {
+                if (previousScan[row][col] == true)
+                {
+                    for (int monsterRow = 0; monsterRow < currentScan.length; monsterRow++)
+                    {
+                        for (int monsterCol = 0; monsterCol < currentScan[0].length; monsterCol++)
+                        {
+                            if (currentScan[monsterRow][monsterCol] == true)
+                            {
+                                if ((Math.abs(monsterRow - row) <= 5) && (Math.abs(monsterCol - col) <= 5))
+                                {
+                                    int changeX = monsterRow - row;
+                                    int changeY = monsterCol - col;
+                                    
+                                    slopes[changeX + 5][changeY + 5] += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // update the accumulator
         for(int row = 0; row < currentScan.length; row++)
         {
             for(int col = 0; col < currentScan[0].length; col++)
@@ -89,14 +128,29 @@ public class Radar
      * @param   col     the column in which the monster is located
      * @pre row and col must be within the bounds of the radar grid
      */
-    public void setMonsterLocation(int row, int col)
+    public void setMonsterLocation()
     {
-        // remember the row and col of the monster's location
-        monsterLocationRow = row;
-        monsterLocationCol = col;
+        monsterLocationRow += dx;
+        monsterLocationCol += dy;
         
-        // update the radar grid to show that something was detected at the specified location
-        currentScan[row][col] = true;
+        if (monsterLocationRow < 0)
+        {
+            monsterLocationRow += 99;
+        }
+        else if (monsterLocationCol < 0)
+        {
+            monsterLocationCol += 99;
+        }
+        else if (monsterLocationRow > 99)
+        {
+            monsterLocationRow -= 99;
+        }
+        else if (monsterLocationCol > 99)
+        {
+            monsterLocationCol -= 99;
+        }
+        
+        currentScan[monsterLocationRow][monsterLocationCol] = true;
     }
     
      /**
@@ -164,6 +218,28 @@ public class Radar
     public int getNumScans()
     {
         return numScans;
+    }
+    
+    public int[] getDxDy()
+    {
+        int[] dxdy = new int[2];
+        int max = 0;
+        
+        for (int i = 0; i < slopes.length; i++)
+        {
+            for (int j = 0; j < slopes[0].length; j++)
+            {
+                if (slopes[i][j] > max)
+                {
+                    max = slopes[i][j];
+                    
+                    dxdy[0] = i - 5;
+                    dxdy[1] = j - 5;
+                }
+            }
+        }
+        
+        return dxdy;
     }
     
     /**
